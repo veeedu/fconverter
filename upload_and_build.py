@@ -7,15 +7,18 @@ import subprocess
 import sys
 import os
 
-def run_command(command, cwd=None):
+def run_command(command, cwd=None, check=True):
     """Run a shell command and return the result."""
     try:
-        result = subprocess.run(command, shell=True, cwd=cwd, check=True, capture_output=True, text=True)
+        result = subprocess.run(command, shell=True, cwd=cwd, check=check, capture_output=True, text=True)
         return result.stdout.strip()
     except subprocess.CalledProcessError as e:
-        print(f"Error running command: {command}")
-        print(f"Error output: {e.stderr}")
-        sys.exit(1)
+        if check:
+            print(f"Error running command: {command}")
+            print(f"Error output: {e.stderr}")
+            sys.exit(1)
+        else:
+            return e.stdout.strip() if e.stdout else ""
 
 def main():
     # Check if git is installed
@@ -35,7 +38,7 @@ def main():
     repo_url = "git@github.com:veeedu/fconverter.git"
 
     # Check if remote origin exists
-    remotes = run_command("git remote")
+    remotes = run_command("git remote", check=False)
     if "origin" not in remotes:
         print("Adding remote origin...")
         run_command(f"git remote add origin {repo_url}")
@@ -43,15 +46,24 @@ def main():
         print("Remote origin already exists. Updating URL...")
         run_command(f"git remote set-url origin {repo_url}")
 
+    # Check and set git user name and email
+    user_name = run_command("git config user.name", check=False)
+    if not user_name:
+        user_name = input("Enter your Git user name: ").strip()
+        run_command(f"git config user.name \"{user_name}\"")
+
+    user_email = run_command("git config user.email", check=False)
+    if not user_email:
+        user_email = input("Enter your Git user email: ").strip()
+        run_command(f"git config user.email \"{user_email}\"")
+
     # Add all files
-    print("Adding files to git...")
-    run_command("git add .")
 
     # Check if there are changes to commit
     status = run_command("git status --porcelain")
     if not status:
         print("No changes to commit.")
-        print("If you want to trigger a build, make sure there are changes or force push.")
+        print("Attempting to push any existing commits...")
     else:
         # Commit
         commit_message = "Upload project for automated build"
@@ -61,7 +73,7 @@ def main():
     # Push to GitHub
     print("Pushing to GitHub...")
     try:
-        run_command("git push -u origin main")
+        run_command("git push -u origin HEAD:main")
         print("Successfully pushed to GitHub!")
         print("GitHub Actions will now compile the .exe file.")
         print("Check the Actions tab in your GitHub repository for the build status.")
