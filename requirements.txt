@@ -1,0 +1,9 @@
+PySide6
+pydub
+Pillow
+PyPDF2
+python-docx
+moviepy  # Though not used, it's installed
+tqdm  # Not used
+ttkbootstrap  # Not used
+opencv-python-headless  # Not used
