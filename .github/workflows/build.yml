@@ -29,6 +29,7 @@ jobs:
           --onefile ^
           --windowed ^
           --collect-all PySide6 ^
+          --collect-submodules PySide6 ^
           app.py
 
     - name: Upload artifact
